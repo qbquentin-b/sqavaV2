@@ -285,33 +285,122 @@ export class ParticleSystem {
       this.ctx.fill()
     })
 
-    // Planet
-    const planetX = this.canvas.width * 0.8
-    const planetY = (this.canvas.height * 0.3) - (this.lastScrollY * 0.15)
-    const planetRadius = this.isMobile ? 80 : 150
+    // Planet - Enhanced Physics & Style
+    const time = Date.now() * 0.0005
+    const parallaxX = (this.mouse.x - centerX) * 0.02
+    const parallaxY = (this.mouse.y - centerY) * 0.02
+    const floatOffset = Math.sin(time) * 15
+
+    const planetX = (this.canvas.width * 0.8) - parallaxX
+    const planetY = (this.canvas.height * 0.3) - (this.lastScrollY * 0.15) - parallaxY + floatOffset
+    const planetRadius = this.isMobile ? 100 : 180
 
     this.ctx.save()
-    const planetGrad = this.ctx.createRadialGradient(
-      planetX - planetRadius * 0.3,
-      planetY - planetRadius * 0.3,
+
+    // Outer atmospheric glow
+    const outerGlow = this.ctx.createRadialGradient(planetX, planetY, planetRadius, planetX, planetY, planetRadius * 1.5)
+    outerGlow.addColorStop(0, 'rgba(60, 100, 255, 0.2)')
+    outerGlow.addColorStop(1, 'rgba(6, 7, 20, 0)')
+    this.ctx.fillStyle = outerGlow
+    this.ctx.beginPath()
+    this.ctx.arc(planetX, planetY, planetRadius * 1.5, 0, Math.PI * 2)
+    this.ctx.fill()
+
+    // Planet Body with gas giant texture bands
+    this.ctx.beginPath()
+    this.ctx.arc(planetX, planetY, planetRadius, 0, Math.PI * 2)
+    this.ctx.clip() // Clip everything inside the circle to create the bands
+
+    const bodyGrad = this.ctx.createRadialGradient(
+      planetX - planetRadius * 0.4,
+      planetY - planetRadius * 0.4,
       planetRadius * 0.1,
       planetX,
       planetY,
-      planetRadius
+      planetRadius * 1.1
     )
-    planetGrad.addColorStop(0, 'rgba(80, 130, 255, 0.15)')
-    planetGrad.addColorStop(1, 'rgba(6, 7, 20, 0)')
+    bodyGrad.addColorStop(0, 'rgba(90, 150, 255, 0.9)')
+    bodyGrad.addColorStop(0.6, 'rgba(30, 60, 150, 0.8)')
+    bodyGrad.addColorStop(1, 'rgba(10, 20, 50, 0.9)')
+    this.ctx.fillStyle = bodyGrad
+    this.ctx.fill()
 
-    this.ctx.fillStyle = planetGrad
+    // Animated gas bands
+    for (let i = 0; i < 6; i++) {
+      const bandOffset = Math.sin(time * 0.2 + i) * planetRadius * 0.1
+      const bandY = planetY - planetRadius + (i * (planetRadius * 0.35)) + bandOffset
+
+      this.ctx.beginPath()
+      this.ctx.moveTo(planetX - planetRadius, bandY)
+      this.ctx.quadraticCurveTo(
+        planetX, bandY + planetRadius * 0.2,
+        planetX + planetRadius, bandY
+      )
+      this.ctx.lineWidth = planetRadius * 0.15 + Math.sin(time + i)*5
+      this.ctx.strokeStyle = `rgba(255, 255, 255, ${0.05 + Math.abs(Math.cos(time + i)) * 0.03})`
+      this.ctx.stroke()
+    }
+    this.ctx.restore() // Remove clipping
+
+    // Volumetric shadow overlay to give 3D depth
+    const shadowGrad = this.ctx.createRadialGradient(
+      planetX + planetRadius * 0.5,
+      planetY + planetRadius * 0.5,
+      planetRadius * 0.1,
+      planetX,
+      planetY,
+      planetRadius * 1.2
+    )
+    shadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0)')
+    shadowGrad.addColorStop(1, 'rgba(6, 7, 20, 0.85)')
+    this.ctx.fillStyle = shadowGrad
     this.ctx.beginPath()
     this.ctx.arc(planetX, planetY, planetRadius, 0, Math.PI * 2)
     this.ctx.fill()
 
+    // Back Ring (behind planet, semi-transparent)
+    this.ctx.save()
     this.ctx.beginPath()
-    this.ctx.ellipse(planetX, planetY, planetRadius * 1.8, planetRadius * 0.4, Math.PI / 6, 0, Math.PI * 2)
-    this.ctx.strokeStyle = 'rgba(100, 160, 255, 0.05)'
-    this.ctx.lineWidth = 2
+    this.ctx.ellipse(planetX, planetY, planetRadius * 2.2, planetRadius * 0.5, Math.PI / 8, Math.PI, Math.PI * 2)
+    this.ctx.strokeStyle = 'rgba(100, 180, 255, 0.08)'
+    this.ctx.lineWidth = 4
     this.ctx.stroke()
+
+    // Front Ring (in front of planet, brighter)
+    this.ctx.beginPath()
+    this.ctx.ellipse(planetX, planetY, planetRadius * 2.2, planetRadius * 0.5, Math.PI / 8, 0, Math.PI)
+    this.ctx.strokeStyle = 'rgba(150, 200, 255, 0.25)'
+    this.ctx.lineWidth = 6
+    this.ctx.stroke()
+
+    // Inner bright ring ring
+    this.ctx.beginPath()
+    this.ctx.ellipse(planetX, planetY, planetRadius * 1.8, planetRadius * 0.4, Math.PI / 8, 0, Math.PI)
+    this.ctx.strokeStyle = 'rgba(200, 230, 255, 0.4)'
+    this.ctx.lineWidth = 1.5
+    this.ctx.stroke()
+
+    this.ctx.restore()
+
+    // Ring Particles (debris orbiting the planet)
+    this.ctx.save()
+    this.ctx.translate(planetX, planetY)
+    this.ctx.rotate(Math.PI / 8) // Match ring angle
+    for(let i=0; i<30; i++) {
+        const angle = time * (0.5 + (i%3)*0.2) + (i * 0.5)
+        // Ensure particles are mostly in the front visible arc, or render them fainter if behind
+        const isFront = Math.sin(angle) > 0;
+        if(isFront || Math.random() > 0.5) {
+           const dist = planetRadius * 1.8 + Math.sin(i*74) * planetRadius * 0.4
+           const x = Math.cos(angle) * dist
+           const y = Math.sin(angle) * dist * 0.22 // Perspective flattening
+
+           this.ctx.fillStyle = `rgba(200, 220, 255, ${isFront ? 0.6 : 0.1})`
+           this.ctx.beginPath()
+           this.ctx.arc(x, y, isFront ? Math.random()*2+0.5 : 0.5, 0, Math.PI*2)
+           this.ctx.fill()
+        }
+    }
     this.ctx.restore()
 
     // Shooting Stars
