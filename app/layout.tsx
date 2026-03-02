@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Montserrat } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import CookieBanner from '@/components/cookie-banner'
 import './globals.css'
@@ -57,7 +56,6 @@ export default function RootLayout({
         {children}
         <Toaster theme="dark" position="bottom-right" />
         <CookieBanner />
-        <Analytics />
       </body>
     </html>
   )
