@@ -288,39 +288,43 @@ export class ParticleSystem {
     // Planet - Enhanced Physics & Style
     let time = Date.now() * 0.0005
 
-    // Zoom and approach effect based on scroll
-    // Smoother scaling with easing
-    const scrollProgress = Math.min(this.lastScrollY / 1200, 1.5) // Increased divisor for gentler progression
-    // Ease out cubic
-    const easeProgress = 1 - Math.pow(1 - scrollProgress, 3)
+    // Calculate true scroll progress based on page height (0.0 to 1.0)
+    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
+    const scrollProgress = Math.min(Math.max(this.lastScrollY / maxScroll, 0), 1)
 
-    // Size increases as we scroll, but capped and smoother
+    // Smoothstep for position movement to feel organic
+    const positionProgress = scrollProgress * scrollProgress * (3 - 2 * scrollProgress)
+
+    // Symmetrical scale curve: starts at 0, peaks at 1 (when scrollProgress=0.5), ends at 0
+    const scaleCurve = Math.sin(scrollProgress * Math.PI)
+
+    // Size increases as we scroll to the middle, then shrinks back
     const baseRadius = this.isMobile ? 100 : 180
-    const planetRadius = baseRadius * (1 + easeProgress * 1.2) // Grow more, but smoothly
+    const planetRadius = baseRadius * (1 + scaleCurve * 0.4) // Grows up to 40% bigger at the center
 
-    // Position follows an orbital curve rather than a straight line to the center
+    // Position follows an orbital curve across the screen from right to left
     const startX = this.canvas.width * 0.8
     const startY = this.canvas.height * 0.3
 
-    // Target is slightly off-center to feel more like an orbit
-    const targetX = centerX + (this.isMobile ? 0 : 50)
-    const targetY = centerY
+    // Target is the opposite side of the screen
+    const targetX = this.canvas.width * 0.2
+    const targetY = this.canvas.height * 0.7
 
-    // Smooth transition
-    const lerpX = startX + (targetX - startX) * easeProgress
-    const lerpY = startY + (targetY - startY) * easeProgress
+    // Smooth transition across the entire page
+    const lerpX = startX + (targetX - startX) * positionProgress
+    const lerpY = startY + (targetY - startY) * positionProgress
 
     // Add orbital sway based on scroll and time
-    const orbitSwayX = Math.cos(easeProgress * Math.PI) * 40 * easeProgress
-    const orbitSwayY = Math.sin(easeProgress * Math.PI) * 40 * easeProgress
+    const orbitSwayX = Math.cos(positionProgress * Math.PI) * 40 * positionProgress
+    const orbitSwayY = Math.sin(positionProgress * Math.PI) * 40 * positionProgress
 
-    const floatOffset = Math.sin(time * 0.5) * 20 * (1 - easeProgress * 0.5) // Float less as we get closer
+    const floatOffset = Math.sin(time * 0.5) * 20 * (1 - scaleCurve * 0.5) // Float less while large/close
 
     const planetX = lerpX + orbitSwayX
     const planetY = lerpY + floatOffset + orbitSwayY
 
     // Base rotation plus scroll-accelerated rotation
-    time += easeProgress * 4
+    time += positionProgress * 4
 
     this.ctx.save()
 
@@ -363,7 +367,7 @@ export class ParticleSystem {
         planetX, bandY + planetRadius * 0.2,
         planetX + planetRadius, bandY
       )
-      this.ctx.lineWidth = planetRadius * 0.15 + Math.sin(time + i)*5
+      this.ctx.lineWidth = planetRadius * 0.15 + Math.sin(time + i) * 5
       this.ctx.strokeStyle = `rgba(255, 255, 255, ${0.05 + Math.abs(Math.cos(time + i)) * 0.03})`
       this.ctx.stroke()
     }
@@ -386,28 +390,28 @@ export class ParticleSystem {
     this.ctx.fill()
 
     // Angle shifts slightly as we approach to simulate fly-by
-    const ringAngle = (Math.PI / 8) - (easeProgress * 0.4) // More dramatic angle shift
+    const ringAngle = (Math.PI / 8) - (positionProgress * 0.4) // More dramatic angle shift
 
     // Back Ring (behind planet, semi-transparent)
     this.ctx.save()
     this.ctx.beginPath()
     this.ctx.ellipse(planetX, planetY, planetRadius * 2.2, planetRadius * 0.5, ringAngle, Math.PI, Math.PI * 2)
     this.ctx.strokeStyle = 'rgba(100, 180, 255, 0.08)'
-    this.ctx.lineWidth = 4 * (1 + easeProgress * 0.8)
+    this.ctx.lineWidth = 4 * (1 + scaleCurve * 0.8)
     this.ctx.stroke()
 
     // Front Ring (in front of planet, brighter)
     this.ctx.beginPath()
     this.ctx.ellipse(planetX, planetY, planetRadius * 2.2, planetRadius * 0.5, ringAngle, 0, Math.PI)
     this.ctx.strokeStyle = 'rgba(150, 200, 255, 0.25)'
-    this.ctx.lineWidth = 6 * (1 + easeProgress * 0.8)
+    this.ctx.lineWidth = 6 * (1 + scaleCurve * 0.8)
     this.ctx.stroke()
 
     // Inner bright ring ring
     this.ctx.beginPath()
     this.ctx.ellipse(planetX, planetY, planetRadius * 1.8, planetRadius * 0.4, ringAngle, 0, Math.PI)
     this.ctx.strokeStyle = 'rgba(200, 230, 255, 0.4)'
-    this.ctx.lineWidth = 1.5 * (1 + easeProgress * 0.8)
+    this.ctx.lineWidth = 1.5 * (1 + scaleCurve * 0.8)
     this.ctx.stroke()
 
     this.ctx.restore()
@@ -416,20 +420,20 @@ export class ParticleSystem {
     this.ctx.save()
     this.ctx.translate(planetX, planetY)
     this.ctx.rotate(ringAngle) // Match ring angle
-    for(let i=0; i<30; i++) {
-        const angle = time * (0.5 + (i%3)*0.2) + (i * 0.5)
-        // Ensure particles are mostly in the front visible arc, or render them fainter if behind
-        const isFront = Math.sin(angle) > 0;
-        if(isFront || Math.random() > 0.5) {
-           const dist = planetRadius * 1.8 + Math.sin(i*74) * planetRadius * 0.4
-           const x = Math.cos(angle) * dist
-           const y = Math.sin(angle) * dist * 0.22 // Perspective flattening
+    for (let i = 0; i < 30; i++) {
+      const angle = time * (0.5 + (i % 3) * 0.2) + (i * 0.5)
+      // Ensure particles are mostly in the front visible arc, or render them fainter if behind
+      const isFront = Math.sin(angle) > 0;
+      if (isFront || Math.random() > 0.5) {
+        const dist = planetRadius * 1.8 + Math.sin(i * 74) * planetRadius * 0.4
+        const x = Math.cos(angle) * dist
+        const y = Math.sin(angle) * dist * 0.22 // Perspective flattening
 
-           this.ctx.fillStyle = `rgba(200, 220, 255, ${isFront ? 0.6 : 0.1})`
-           this.ctx.beginPath()
-           this.ctx.arc(x, y, isFront ? Math.random()*2+0.5 : 0.5, 0, Math.PI*2)
-           this.ctx.fill()
-        }
+        this.ctx.fillStyle = `rgba(200, 220, 255, ${isFront ? 0.6 : 0.1})`
+        this.ctx.beginPath()
+        this.ctx.arc(x, y, isFront ? Math.random() * 2 + 0.5 : 0.5, 0, Math.PI * 2)
+        this.ctx.fill()
+      }
     }
     this.ctx.restore()
 
