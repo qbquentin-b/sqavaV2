@@ -481,7 +481,7 @@ export class ParticleSystem {
       this.ctx.fill()
     }
 
-    // Mini Planet (Replacing Rocket)
+    // Rocket (Stylized like the planet)
     if (!this.miniPlanet.active && Math.random() < 0.0001) {
       this.miniPlanet.active = true
       this.miniPlanet.x = -50
@@ -497,10 +497,11 @@ export class ParticleSystem {
       if (this.miniPlanet.x > this.canvas.width + 100 || this.miniPlanet.y < -100) {
         this.miniPlanet.active = false
       } else {
-        const pRadius = 15 // Size of mini planet
+        const pRadius = 15 // Base scale for rocket
 
         this.ctx.save()
         this.ctx.translate(this.miniPlanet.x, this.miniPlanet.y)
+        this.ctx.rotate(this.miniPlanet.angle) // Point rocket in direction of travel
 
         // Outer glow
         const glow = this.ctx.createRadialGradient(0, 0, pRadius, 0, 0, pRadius * 1.5)
@@ -511,35 +512,36 @@ export class ParticleSystem {
         this.ctx.arc(0, 0, pRadius * 1.5, 0, Math.PI * 2)
         this.ctx.fill()
 
-        // Planet Body
-        const bodyGrad = this.ctx.createRadialGradient(
-          -pRadius * 0.4, -pRadius * 0.4, pRadius * 0.1,
-          0, 0, pRadius * 1.1
-        )
-        bodyGrad.addColorStop(0, "rgba(90, 150, 255, 1)")
-        bodyGrad.addColorStop(0.6, "rgba(30, 60, 150, 0.9)")
-        bodyGrad.addColorStop(1, "rgba(10, 20, 50, 1)")
+        // Rocket Body (Sleek aerodynamic shape, pointing right +X)
+        const bodyGrad = this.ctx.createLinearGradient(-pRadius, -pRadius, pRadius, pRadius)
+        bodyGrad.addColorStop(0, "rgba(200, 230, 255, 1)")
+        bodyGrad.addColorStop(0.5, "rgba(90, 150, 255, 1)")
+        bodyGrad.addColorStop(1, "rgba(30, 60, 150, 1)")
+
         this.ctx.fillStyle = bodyGrad
         this.ctx.beginPath()
-        this.ctx.arc(0, 0, pRadius, 0, Math.PI * 2)
+        this.ctx.moveTo(pRadius * 1.5, 0) // Nose (Forward)
+        this.ctx.lineTo(-pRadius * 0.5, pRadius * 0.5) // Right wing
+        this.ctx.lineTo(-pRadius * 0.8, pRadius * 0.8) // Right wingtip
+        this.ctx.lineTo(-pRadius * 0.6, 0) // Engine back
+        this.ctx.lineTo(-pRadius * 0.8, -pRadius * 0.8) // Left wingtip
+        this.ctx.lineTo(-pRadius * 0.5, -pRadius * 0.5) // Left wing
+        this.ctx.closePath()
         this.ctx.fill()
 
-        // Rings
-        this.ctx.rotate(time * 0.5 + Math.PI / 6)
+        // Rocket Window
+        this.ctx.fillStyle = "rgba(6, 7, 20, 0.9)"
         this.ctx.beginPath()
-        this.ctx.ellipse(0, 0, pRadius * 2, pRadius * 0.4, 0, 0, Math.PI * 2)
-        this.ctx.strokeStyle = "rgba(150, 200, 255, 0.4)"
-        this.ctx.lineWidth = 1.5
-        this.ctx.stroke()
-        this.ctx.beginPath()
-        this.ctx.ellipse(0, 0, pRadius * 1.6, pRadius * 0.3, 0, 0, Math.PI * 2)
-        this.ctx.strokeStyle = "rgba(200, 230, 255, 0.6)"
+        this.ctx.arc(pRadius * 0.2, 0, pRadius * 0.25, 0, Math.PI * 2)
+        this.ctx.fill()
+
+        this.ctx.strokeStyle = "rgba(150, 200, 255, 0.8)"
         this.ctx.lineWidth = 1
         this.ctx.stroke()
 
         this.ctx.restore()
 
-        // Trail
+        // Engine Trail
         this.ctx.beginPath()
         const trailTailX = this.miniPlanet.x - Math.cos(this.miniPlanet.angle) * 40
         const trailTailY = this.miniPlanet.y - Math.sin(this.miniPlanet.angle) * 40
@@ -552,8 +554,8 @@ export class ParticleSystem {
         this.ctx.lineCap = "round"
         this.ctx.moveTo(trailTailX, trailTailY)
         this.ctx.lineTo(
-          this.miniPlanet.x - Math.cos(this.miniPlanet.angle) * (pRadius + 5),
-          this.miniPlanet.y - Math.sin(this.miniPlanet.angle) * (pRadius + 5)
+          this.miniPlanet.x - Math.cos(this.miniPlanet.angle) * (pRadius - 5),
+          this.miniPlanet.y - Math.sin(this.miniPlanet.angle) * (pRadius - 5)
         )
         this.ctx.stroke()
       }
