@@ -286,21 +286,29 @@ export class ParticleSystem {
     })
 
     // Planet - Enhanced Physics & Style
-    const time = Date.now() * 0.0005
+    let time = Date.now() * 0.0005
 
-    // Prevent planet from jumping when mouse leaves screen (-9999)
-    let parallaxX = 0;
-    let parallaxY = 0;
-    if (this.mouse.x !== -9999 && this.mouse.y !== -9999) {
-      parallaxX = (this.mouse.x - centerX) * 0.02
-      parallaxY = (this.mouse.y - centerY) * 0.02
-    }
+    // Zoom and approach effect based on scroll
+    // As we scroll down, we "approach" the planet
+    const scrollEffect = Math.min(this.lastScrollY / 600, 1.5)
+
+    // Size increases as we scroll
+    const baseRadius = this.isMobile ? 100 : 180
+    const planetRadius = baseRadius * (1 + scrollEffect * 0.8)
+
+    // Position shifts towards the center as we scroll
+    const startX = this.canvas.width * 0.8
+    const startY = this.canvas.height * 0.3
+    const targetX = centerX
+    const targetY = centerY
 
     const floatOffset = Math.sin(time) * 15
 
-    const planetX = (this.canvas.width * 0.8) - parallaxX
-    const planetY = (this.canvas.height * 0.3) - (this.lastScrollY * 0.15) - parallaxY + floatOffset
-    const planetRadius = this.isMobile ? 100 : 180
+    const planetX = startX + (targetX - startX) * scrollEffect
+    const planetY = startY + (targetY - startY) * scrollEffect + floatOffset
+
+    // Speed up time slightly based on scroll to simulate movement
+    time += scrollEffect * 2
 
     this.ctx.save()
 
@@ -365,26 +373,29 @@ export class ParticleSystem {
     this.ctx.arc(planetX, planetY, planetRadius, 0, Math.PI * 2)
     this.ctx.fill()
 
+    // Angle shifts slightly as we approach to simulate fly-by
+    const ringAngle = (Math.PI / 8) - (scrollEffect * 0.3)
+
     // Back Ring (behind planet, semi-transparent)
     this.ctx.save()
     this.ctx.beginPath()
-    this.ctx.ellipse(planetX, planetY, planetRadius * 2.2, planetRadius * 0.5, Math.PI / 8, Math.PI, Math.PI * 2)
+    this.ctx.ellipse(planetX, planetY, planetRadius * 2.2, planetRadius * 0.5, ringAngle, Math.PI, Math.PI * 2)
     this.ctx.strokeStyle = 'rgba(100, 180, 255, 0.08)'
-    this.ctx.lineWidth = 4
+    this.ctx.lineWidth = 4 * (1 + scrollEffect * 0.5)
     this.ctx.stroke()
 
     // Front Ring (in front of planet, brighter)
     this.ctx.beginPath()
-    this.ctx.ellipse(planetX, planetY, planetRadius * 2.2, planetRadius * 0.5, Math.PI / 8, 0, Math.PI)
+    this.ctx.ellipse(planetX, planetY, planetRadius * 2.2, planetRadius * 0.5, ringAngle, 0, Math.PI)
     this.ctx.strokeStyle = 'rgba(150, 200, 255, 0.25)'
-    this.ctx.lineWidth = 6
+    this.ctx.lineWidth = 6 * (1 + scrollEffect * 0.5)
     this.ctx.stroke()
 
     // Inner bright ring ring
     this.ctx.beginPath()
-    this.ctx.ellipse(planetX, planetY, planetRadius * 1.8, planetRadius * 0.4, Math.PI / 8, 0, Math.PI)
+    this.ctx.ellipse(planetX, planetY, planetRadius * 1.8, planetRadius * 0.4, ringAngle, 0, Math.PI)
     this.ctx.strokeStyle = 'rgba(200, 230, 255, 0.4)'
-    this.ctx.lineWidth = 1.5
+    this.ctx.lineWidth = 1.5 * (1 + scrollEffect * 0.5)
     this.ctx.stroke()
 
     this.ctx.restore()
@@ -392,7 +403,7 @@ export class ParticleSystem {
     // Ring Particles (debris orbiting the planet)
     this.ctx.save()
     this.ctx.translate(planetX, planetY)
-    this.ctx.rotate(Math.PI / 8) // Match ring angle
+    this.ctx.rotate(ringAngle) // Match ring angle
     for(let i=0; i<30; i++) {
         const angle = time * (0.5 + (i%3)*0.2) + (i * 0.5)
         // Ensure particles are mostly in the front visible arc, or render them fainter if behind
