@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Montserrat } from 'next/font/google'
 import { Toaster } from 'sonner'
 import CookieBanner from '@/components/cookie-banner'
+import { SmoothScrollProvider } from '@/components/smooth-scroll-provider'
 import './globals.css'
 
 const montserrat = Montserrat({
@@ -53,6 +54,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${montserrat.variable} font-sans antialiased`} suppressHydrationWarning>
+        <SmoothScrollProvider />
         {children}
         <Toaster theme="dark" position="bottom-right" />
         <CookieBanner />

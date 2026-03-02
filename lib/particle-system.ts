@@ -87,6 +87,7 @@ export class ParticleSystem {
     window.addEventListener("touchmove", this.handleTouchMove, { passive: true })
     window.addEventListener("touchend", this.handleTouchEnd)
     window.addEventListener("scroll", this.handleScroll, { passive: true })
+    window.addEventListener("keydown", this.handleKeyDown)
   }
 
   private unbindEvents() {
@@ -96,6 +97,7 @@ export class ParticleSystem {
     window.removeEventListener("touchmove", this.handleTouchMove)
     window.removeEventListener("touchend", this.handleTouchEnd)
     window.removeEventListener("scroll", this.handleScroll)
+    window.removeEventListener("keydown", this.handleKeyDown)
   }
 
   private handleResize = () => {
@@ -132,6 +134,23 @@ export class ParticleSystem {
     const currentY = window.scrollY
     this.scrollVelocity += currentY - this.lastScrollY
     this.lastScrollY = currentY
+  }
+
+  private launchRocket = () => {
+    if (!this.miniPlanet.active) {
+      this.miniPlanet.active = true
+      this.miniPlanet.x = -50
+      this.miniPlanet.y = this.canvas.height + 50
+      this.miniPlanet.angle = -Math.PI / 4 + (Math.random() - 0.5) * 0.3
+      this.miniPlanet.speed = 3 + Math.random() * 2
+    }
+  }
+
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (e.ctrlKey && e.key.toLowerCase() === 'b') {
+      e.preventDefault()
+      this.launchRocket()
+    }
   }
 
   public start() {
@@ -483,11 +502,7 @@ export class ParticleSystem {
 
     // Rocket (Stylized like the planet)
     if (!this.miniPlanet.active && Math.random() < 0.0001) {
-      this.miniPlanet.active = true
-      this.miniPlanet.x = -50
-      this.miniPlanet.y = this.canvas.height + 50
-      this.miniPlanet.angle = -Math.PI / 4 + (Math.random() - 0.5) * 0.3
-      this.miniPlanet.speed = 3 + Math.random() * 2
+      this.launchRocket()
     }
 
     if (this.miniPlanet.active) {
