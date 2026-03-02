@@ -19,7 +19,7 @@ interface ShootingStar {
   opacity: number
 }
 
-interface Rocket {
+interface MiniPlanet {
   active: boolean
   x: number
   y: number
@@ -33,7 +33,7 @@ export class ParticleSystem {
   private animationFrameId: number = 0
   private particles: Particle[] = []
   private shootingStars: ShootingStar[] = []
-  private rocket: Rocket = { active: false, x: 0, y: 0, angle: 0, speed: 0 }
+  private miniPlanet: MiniPlanet = { active: false, x: 0, y: 0, angle: 0, speed: 0 }
 
   private mouse = { x: -9999, y: -9999 }
   private isMobile: boolean
@@ -477,67 +477,80 @@ export class ParticleSystem {
       this.ctx.fill()
     }
 
-    // Rocket
-    if (!this.rocket.active && Math.random() < 0.0001) {
-      this.rocket.active = true
-      this.rocket.x = -50
-      this.rocket.y = this.canvas.height + 50
-      this.rocket.angle = -Math.PI / 4 + (Math.random() - 0.5) * 0.3
-      this.rocket.speed = 3 + Math.random() * 2
+    // Mini Planet (Replacing Rocket)
+    if (!this.miniPlanet.active && Math.random() < 0.0001) {
+      this.miniPlanet.active = true
+      this.miniPlanet.x = -50
+      this.miniPlanet.y = this.canvas.height + 50
+      this.miniPlanet.angle = -Math.PI / 4 + (Math.random() - 0.5) * 0.3
+      this.miniPlanet.speed = 3 + Math.random() * 2
     }
 
-    if (this.rocket.active) {
-      this.rocket.x += Math.cos(this.rocket.angle) * this.rocket.speed
-      this.rocket.y += Math.sin(this.rocket.angle) * this.rocket.speed
+    if (this.miniPlanet.active) {
+      this.miniPlanet.x += Math.cos(this.miniPlanet.angle) * this.miniPlanet.speed
+      this.miniPlanet.y += Math.sin(this.miniPlanet.angle) * this.miniPlanet.speed
 
-      if (this.rocket.x > this.canvas.width + 100 || this.rocket.y < -100) {
-        this.rocket.active = false
+      if (this.miniPlanet.x > this.canvas.width + 100 || this.miniPlanet.y < -100) {
+        this.miniPlanet.active = false
       } else {
+        const pRadius = 15 // Size of mini planet
+
         this.ctx.save()
-        this.ctx.translate(this.rocket.x, this.rocket.y)
-        this.ctx.rotate(this.rocket.angle)
+        this.ctx.translate(this.miniPlanet.x, this.miniPlanet.y)
 
-        this.ctx.fillStyle = "#e2e8f0"
+        // Outer glow
+        const glow = this.ctx.createRadialGradient(0, 0, pRadius, 0, 0, pRadius * 1.5)
+        glow.addColorStop(0, "rgba(60, 100, 255, 0.3)")
+        glow.addColorStop(1, "rgba(6, 7, 20, 0)")
+        this.ctx.fillStyle = glow
         this.ctx.beginPath()
-        this.ctx.moveTo(16, 0)
-        this.ctx.lineTo(-8, 6)
-        this.ctx.lineTo(-12, 0)
-        this.ctx.lineTo(-8, -6)
-        this.ctx.closePath()
-        this.ctx.fill()
-
-        this.ctx.fillStyle = "#3b82f6"
-        this.ctx.beginPath()
-        this.ctx.moveTo(-4, 5)
-        this.ctx.lineTo(-10, 10)
-        this.ctx.lineTo(-8, 5)
-        this.ctx.closePath()
-        this.ctx.fill()
-        this.ctx.beginPath()
-        this.ctx.moveTo(-4, -5)
-        this.ctx.lineTo(-10, -10)
-        this.ctx.lineTo(-8, -5)
-        this.ctx.closePath()
+        this.ctx.arc(0, 0, pRadius * 1.5, 0, Math.PI * 2)
         this.ctx.fill()
 
-        this.ctx.fillStyle = "#0f172a"
+        // Planet Body
+        const bodyGrad = this.ctx.createRadialGradient(
+          -pRadius * 0.4, -pRadius * 0.4, pRadius * 0.1,
+          0, 0, pRadius * 1.1
+        )
+        bodyGrad.addColorStop(0, "rgba(90, 150, 255, 1)")
+        bodyGrad.addColorStop(0.6, "rgba(30, 60, 150, 0.9)")
+        bodyGrad.addColorStop(1, "rgba(10, 20, 50, 1)")
+        this.ctx.fillStyle = bodyGrad
         this.ctx.beginPath()
-        this.ctx.arc(4, 0, 2, 0, Math.PI * 2)
+        this.ctx.arc(0, 0, pRadius, 0, Math.PI * 2)
         this.ctx.fill()
+
+        // Rings
+        this.ctx.rotate(time * 0.5 + Math.PI / 6)
+        this.ctx.beginPath()
+        this.ctx.ellipse(0, 0, pRadius * 2, pRadius * 0.4, 0, 0, Math.PI * 2)
+        this.ctx.strokeStyle = "rgba(150, 200, 255, 0.4)"
+        this.ctx.lineWidth = 1.5
+        this.ctx.stroke()
+        this.ctx.beginPath()
+        this.ctx.ellipse(0, 0, pRadius * 1.6, pRadius * 0.3, 0, 0, Math.PI * 2)
+        this.ctx.strokeStyle = "rgba(200, 230, 255, 0.6)"
+        this.ctx.lineWidth = 1
+        this.ctx.stroke()
 
         this.ctx.restore()
+
+        // Trail
         this.ctx.beginPath()
-        const trailTailX = this.rocket.x - Math.cos(this.rocket.angle) * 40
-        const trailTailY = this.rocket.y - Math.sin(this.rocket.angle) * 40
-        const trailGrad = this.ctx.createLinearGradient(trailTailX, trailTailY, this.rocket.x, this.rocket.y)
-        trailGrad.addColorStop(0, "rgba(255, 100, 50, 0)")
-        trailGrad.addColorStop(0.5, "rgba(255, 200, 50, 0.5)")
-        trailGrad.addColorStop(1, "rgba(255, 255, 255, 0.8)")
+        const trailTailX = this.miniPlanet.x - Math.cos(this.miniPlanet.angle) * 40
+        const trailTailY = this.miniPlanet.y - Math.sin(this.miniPlanet.angle) * 40
+        const trailGrad = this.ctx.createLinearGradient(trailTailX, trailTailY, this.miniPlanet.x, this.miniPlanet.y)
+        trailGrad.addColorStop(0, "rgba(100, 150, 255, 0)")
+        trailGrad.addColorStop(0.5, "rgba(100, 150, 255, 0.5)")
+        trailGrad.addColorStop(1, "rgba(200, 230, 255, 0.8)")
         this.ctx.strokeStyle = trailGrad
-        this.ctx.lineWidth = 4
+        this.ctx.lineWidth = 3
         this.ctx.lineCap = "round"
         this.ctx.moveTo(trailTailX, trailTailY)
-        this.ctx.lineTo(this.rocket.x - Math.cos(this.rocket.angle) * 15, this.rocket.y - Math.sin(this.rocket.angle) * 15)
+        this.ctx.lineTo(
+          this.miniPlanet.x - Math.cos(this.miniPlanet.angle) * (pRadius + 5),
+          this.miniPlanet.y - Math.sin(this.miniPlanet.angle) * (pRadius + 5)
+        )
         this.ctx.stroke()
       }
     }
