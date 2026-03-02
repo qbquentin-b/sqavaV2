@@ -289,26 +289,38 @@ export class ParticleSystem {
     let time = Date.now() * 0.0005
 
     // Zoom and approach effect based on scroll
-    // As we scroll down, we "approach" the planet
-    const scrollEffect = Math.min(this.lastScrollY / 600, 1.5)
+    // Smoother scaling with easing
+    const scrollProgress = Math.min(this.lastScrollY / 1200, 1.5) // Increased divisor for gentler progression
+    // Ease out cubic
+    const easeProgress = 1 - Math.pow(1 - scrollProgress, 3)
 
-    // Size increases as we scroll
+    // Size increases as we scroll, but capped and smoother
     const baseRadius = this.isMobile ? 100 : 180
-    const planetRadius = baseRadius * (1 + scrollEffect * 0.8)
+    const planetRadius = baseRadius * (1 + easeProgress * 1.2) // Grow more, but smoothly
 
-    // Position shifts towards the center as we scroll
+    // Position follows an orbital curve rather than a straight line to the center
     const startX = this.canvas.width * 0.8
     const startY = this.canvas.height * 0.3
-    const targetX = centerX
+
+    // Target is slightly off-center to feel more like an orbit
+    const targetX = centerX + (this.isMobile ? 0 : 50)
     const targetY = centerY
 
-    const floatOffset = Math.sin(time) * 15
+    // Smooth transition
+    const lerpX = startX + (targetX - startX) * easeProgress
+    const lerpY = startY + (targetY - startY) * easeProgress
 
-    const planetX = startX + (targetX - startX) * scrollEffect
-    const planetY = startY + (targetY - startY) * scrollEffect + floatOffset
+    // Add orbital sway based on scroll and time
+    const orbitSwayX = Math.cos(easeProgress * Math.PI) * 40 * easeProgress
+    const orbitSwayY = Math.sin(easeProgress * Math.PI) * 40 * easeProgress
 
-    // Speed up time slightly based on scroll to simulate movement
-    time += scrollEffect * 2
+    const floatOffset = Math.sin(time * 0.5) * 20 * (1 - easeProgress * 0.5) // Float less as we get closer
+
+    const planetX = lerpX + orbitSwayX
+    const planetY = lerpY + floatOffset + orbitSwayY
+
+    // Base rotation plus scroll-accelerated rotation
+    time += easeProgress * 4
 
     this.ctx.save()
 
@@ -374,28 +386,28 @@ export class ParticleSystem {
     this.ctx.fill()
 
     // Angle shifts slightly as we approach to simulate fly-by
-    const ringAngle = (Math.PI / 8) - (scrollEffect * 0.3)
+    const ringAngle = (Math.PI / 8) - (easeProgress * 0.4) // More dramatic angle shift
 
     // Back Ring (behind planet, semi-transparent)
     this.ctx.save()
     this.ctx.beginPath()
     this.ctx.ellipse(planetX, planetY, planetRadius * 2.2, planetRadius * 0.5, ringAngle, Math.PI, Math.PI * 2)
     this.ctx.strokeStyle = 'rgba(100, 180, 255, 0.08)'
-    this.ctx.lineWidth = 4 * (1 + scrollEffect * 0.5)
+    this.ctx.lineWidth = 4 * (1 + easeProgress * 0.8)
     this.ctx.stroke()
 
     // Front Ring (in front of planet, brighter)
     this.ctx.beginPath()
     this.ctx.ellipse(planetX, planetY, planetRadius * 2.2, planetRadius * 0.5, ringAngle, 0, Math.PI)
     this.ctx.strokeStyle = 'rgba(150, 200, 255, 0.25)'
-    this.ctx.lineWidth = 6 * (1 + scrollEffect * 0.5)
+    this.ctx.lineWidth = 6 * (1 + easeProgress * 0.8)
     this.ctx.stroke()
 
     // Inner bright ring ring
     this.ctx.beginPath()
     this.ctx.ellipse(planetX, planetY, planetRadius * 1.8, planetRadius * 0.4, ringAngle, 0, Math.PI)
     this.ctx.strokeStyle = 'rgba(200, 230, 255, 0.4)'
-    this.ctx.lineWidth = 1.5 * (1 + scrollEffect * 0.5)
+    this.ctx.lineWidth = 1.5 * (1 + easeProgress * 0.8)
     this.ctx.stroke()
 
     this.ctx.restore()
