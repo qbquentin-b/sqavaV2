@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import * as z from 'zod'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 const contactSchema = z.object({
     firstName: z.string().min(2),
     lastName: z.string().min(2),
@@ -23,6 +21,8 @@ export async function POST(req: Request) {
             await new Promise(resolve => setTimeout(resolve, 1000))
             return NextResponse.json({ message: "Email send simulated successfully" })
         }
+
+        const resend = new Resend(process.env.RESEND_API_KEY)
 
         const data = await resend.emails.send({
             from: 'Contact Sqava <onboarding@resend.dev>', // Use a verified domain in production
