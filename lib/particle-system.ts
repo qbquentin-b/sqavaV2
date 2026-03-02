@@ -287,8 +287,15 @@ export class ParticleSystem {
 
     // Planet - Enhanced Physics & Style
     const time = Date.now() * 0.0005
-    const parallaxX = (this.mouse.x - centerX) * 0.02
-    const parallaxY = (this.mouse.y - centerY) * 0.02
+
+    // Prevent planet from jumping when mouse leaves screen (-9999)
+    let parallaxX = 0;
+    let parallaxY = 0;
+    if (this.mouse.x !== -9999 && this.mouse.y !== -9999) {
+      parallaxX = (this.mouse.x - centerX) * 0.02
+      parallaxY = (this.mouse.y - centerY) * 0.02
+    }
+
     const floatOffset = Math.sin(time) * 15
 
     const planetX = (this.canvas.width * 0.8) - parallaxX
